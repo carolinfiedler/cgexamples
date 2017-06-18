@@ -14,9 +14,7 @@ public:
     ~ScrAT();
 
     void initialize();
-    void cleanup();
     bool loadShaders();
-    bool loadTextures();
 
     void resize(int w, int h);
     void render();

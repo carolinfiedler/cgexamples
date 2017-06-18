@@ -125,8 +125,6 @@ int main(int /*argc*/, char ** /*argv*/)
         glfwSwapBuffers(window);
     }
 
-    example.cleanup();
-
     glfwMakeContextCurrent(nullptr);
 
     glfwDestroyWindow(window);

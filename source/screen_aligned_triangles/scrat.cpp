@@ -114,8 +114,6 @@ void ScrAT::initialize()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, static_cast<GLint>(GL_CLAMP_TO_EDGE));
 
 
-    //loadTextures();
-
     // configure framebuffer
 
     glGenFramebuffers(1, &m_fbo);
@@ -137,10 +135,6 @@ void ScrAT::initialize()
     // setup time measurement
 
     glGenQueries(1, &m_query);
-}
-
-void ScrAT::cleanup()
-{
 }
 
 bool ScrAT::loadShaders()
@@ -198,15 +192,6 @@ bool ScrAT::loadShaders()
 
         glCompileShader(m_geometryShaders[0]);
         success &= cgutils::checkForCompilationError(m_geometryShaders[0], sourceFiles[3]);
-
-
-        /*const auto fragmentShaderSource = cgutils::textFromFile(sourceFiles[3].c_str());
-        const auto fragmentShaderSource_ptr = fragmentShaderSource.c_str();
-        if (fragmentShaderSource_ptr)
-            glShaderSource(m_fragmentShaders[0], 1, &fragmentShaderSource_ptr, 0);
-
-        glCompileShader(m_fragmentShaders[0]);
-        success &= cgutils::checkForCompilationError(m_fragmentShaders[0], sourceFiles[3]);*/
 
         if (!success)
             return false;
@@ -267,23 +252,6 @@ void ScrAT::loadUniformLocations()
     //glUseProgram(0);
 }
 
-bool ScrAT::loadTextures()
-{
-    //glBindTexture(GL_TEXTURE_2D, m_textures[0]);
-
-    //auto raw = cgutils::rawFromFile("ScrAT/moep.raw");
-    //glTexImage2D(GL_TEXTURE_2D, 0, static_cast<GLint>(GL_RGBA8), 256, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, raw.data());
-
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, static_cast<GLint>(GL_LINEAR));
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, static_cast<GLint>(GL_LINEAR));
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, static_cast<GLint>(GL_CLAMP_TO_EDGE));
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, static_cast<GLint>(GL_CLAMP_TO_EDGE));
-
-    //glGenerateMipmap(GL_TEXTURE_2D);
-
-    return true;
-}
-
 void ScrAT::resize(int w, int h)
 {
     m_width = w;
@@ -312,11 +280,6 @@ std::uint64_t ScrAT::record(const bool benchmark)
 
     glBindBuffer(gl32ext::GL_ATOMIC_COUNTER_BUFFER, m_acbuffer);
 
-    //auto counter = static_cast<GLuint *>(glMapBufferRange(gl32ext::GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint),
-    //    GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT | GL_MAP_UNSYNCHRONIZED_BIT));
-    //memset(counter, 0, sizeof(GLuint));
-    //glUnmapBuffer(gl32ext::GL_ATOMIC_COUNTER_BUFFER);
-
     const auto counter = 0u;
     glBufferSubData(gl32ext::GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint), &counter);
     glBindBuffer(gl32ext::GL_ATOMIC_COUNTER_BUFFER, 0);
@@ -330,7 +293,7 @@ std::uint64_t ScrAT::record(const bool benchmark)
     if (m_vaoMode == 4)
     {
         glUseProgram(m_programs[2]);
-        glUniform1i(m_uniformLocations[4], static_cast<GLint>(benchmark));
+        glUniform1i(m_uniformLocations[3], static_cast<GLint>(benchmark));
     }
     else
     {
@@ -379,7 +342,6 @@ std::uint64_t ScrAT::record(const bool benchmark)
         while (!done)
             glGetQueryObjectiv(m_query, GL_QUERY_RESULT_AVAILABLE, &done);
 
-        //glFinish();
         glGetQueryObjectui64v(m_query, GL_QUERY_RESULT, &elapsed);
     }
 
