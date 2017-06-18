@@ -137,6 +137,17 @@ void ScrAT::initialize()
     glGenQueries(1, &m_query);
 }
 
+bool ScrAT::loadShader(const std::string & sourceFile, const GLuint & shader)
+{
+    const auto shaderSource = cgutils::textFromFile(sourceFile.c_str());
+    const auto shaderSource_ptr = shaderSource.c_str();
+    if (shaderSource_ptr)
+        glShaderSource(shader, 1, &shaderSource_ptr, 0);
+
+    glCompileShader(shader);
+    bool success = cgutils::checkForCompilationError(shader, sourceFile);
+}
+
 bool ScrAT::loadShaders()
 {
     static const auto sourceFiles = std::array<std::string, 6>{
@@ -148,23 +159,8 @@ bool ScrAT::loadShaders()
         "data/screen_aligned_triangles/replay.frag"  };
 
     {
-        const auto vertexShaderSource = cgutils::textFromFile(sourceFiles[0].c_str());
-        const auto vertexShaderSource_ptr = vertexShaderSource.c_str();
-        if (vertexShaderSource_ptr)
-            glShaderSource(m_vertexShaders[0], 1, &vertexShaderSource_ptr, 0);
-
-        glCompileShader(m_vertexShaders[0]);
-        bool success = cgutils::checkForCompilationError(m_vertexShaders[0], sourceFiles[0]);
-
-
-        const auto fragmentShaderSource = cgutils::textFromFile(sourceFiles[3].c_str());
-        const auto fragmentShaderSource_ptr = fragmentShaderSource.c_str();
-        if (fragmentShaderSource_ptr)
-            glShaderSource(m_fragmentShaders[0], 1, &fragmentShaderSource_ptr, 0);
-
-        glCompileShader(m_fragmentShaders[0]);
-        success &= cgutils::checkForCompilationError(m_fragmentShaders[0], sourceFiles[3]);
-
+        bool success = loadShader(sourceFiles[0], m_vertexShaders[0]);
+        success &= loadShader(sourceFiles[3], m_fragmentShaders[0]);
         if (!success)
             return false;
 
@@ -176,23 +172,8 @@ bool ScrAT::loadShaders()
     }
 
     {
-        const auto vertexShaderSource = cgutils::textFromFile(sourceFiles[1].c_str());
-        const auto vertexShaderSource_ptr = vertexShaderSource.c_str();
-        if (vertexShaderSource_ptr)
-            glShaderSource(m_vertexShaders[2], 1, &vertexShaderSource_ptr, 0);
-
-        glCompileShader(m_vertexShaders[2]);
-        bool success = cgutils::checkForCompilationError(m_vertexShaders[2], sourceFiles[1]);
-
-
-        const auto geometryShaderSource = cgutils::textFromFile(sourceFiles[2].c_str());
-        const auto geometryShaderSource_ptr = geometryShaderSource.c_str();
-        if (geometryShaderSource_ptr)
-            glShaderSource(m_geometryShaders[0], 1, &geometryShaderSource_ptr, 0);
-
-        glCompileShader(m_geometryShaders[0]);
-        success &= cgutils::checkForCompilationError(m_geometryShaders[0], sourceFiles[3]);
-
+        bool success = loadShader(sourceFiles[4], m_vertexShaders[1]);
+        success &= loadShader(sourceFiles[5], m_fragmentShaders[1]);
         if (!success)
             return false;
 
@@ -204,23 +185,8 @@ bool ScrAT::loadShaders()
     }
 
     {
-        const auto vertexShaderSource = cgutils::textFromFile(sourceFiles[4].c_str());
-        const auto vertexShaderSource_ptr = vertexShaderSource.c_str();
-        if (vertexShaderSource_ptr)
-            glShaderSource(m_vertexShaders[1], 1, &vertexShaderSource_ptr, 0);
-
-        glCompileShader(m_vertexShaders[1]);
-        bool success = cgutils::checkForCompilationError(m_vertexShaders[1], sourceFiles[4]);
-
-
-        const auto fragmentShaderSource = cgutils::textFromFile(sourceFiles[5].c_str());
-        const auto fragmentShaderSource_ptr = fragmentShaderSource.c_str();
-        if (fragmentShaderSource_ptr)
-            glShaderSource(m_fragmentShaders[1], 1, &fragmentShaderSource_ptr, 0);
-
-        glCompileShader(m_fragmentShaders[1]);
-        success &= cgutils::checkForCompilationError(m_fragmentShaders[1], sourceFiles[5]);
-
+        bool success = loadShader(sourceFiles[1], m_vertexShaders[2]);
+        success &= loadShader(sourceFiles[2], m_geometryShaders[0]);
         if (!success)
             return false;
 
@@ -230,7 +196,6 @@ bool ScrAT::loadShaders()
         if (!success)
             return false;
     }
-
 
     loadUniformLocations();
 
@@ -345,12 +310,8 @@ std::uint64_t ScrAT::record(const bool benchmark)
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
-
     glUseProgram(0);
-
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-
     glBindBufferBase(gl32ext::GL_ATOMIC_COUNTER_BUFFER, 0, 0);  
 
     if (!benchmark)
