@@ -27,6 +27,27 @@ public:
     void decrementReplaySpeed();
 
 protected:
+	enum class Mode : unsigned int {
+		Two_Triangles_Two_DrawCalls = 0u,
+		Two_Triangles_One_DrawCall = 1u,
+		One_Triangle_One_DrawCall = 2u,
+		Quad_Fill_Rectangle = 3u,
+		AVC_One_DrawCall = 4u
+	};
+
+	enum Program {
+		Record = 0,
+		Replay = 1, 
+		RecordAVC = 2
+	};
+
+	enum VAO {
+		ScreenAlignedTriangle = 0,
+		ScreenAlignedQuad = 1,
+		Empty = 2
+	};
+
+protected:
     void loadUniformLocations();
 
     std::uint64_t record(bool benchmark);
@@ -52,7 +73,7 @@ protected:
 
     bool m_recorded;
     std::array<float, 3> m_threshold; // { last, current, max }
-    int m_vaoMode;
+	Mode m_vaoMode;
 
     using msecs = std::chrono::duration<float, std::chrono::milliseconds::period>;
     std::chrono::time_point<std::chrono::high_resolution_clock> m_time;

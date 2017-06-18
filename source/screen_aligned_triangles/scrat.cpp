@@ -15,7 +15,7 @@ using namespace gl32core;
 
 ScrAT::ScrAT()
 : m_recorded(false)
-, m_vaoMode(0)
+, m_vaoMode(Mode::Two_Triangles_Two_DrawCalls)
 , m_timeDurationMagnitude(3u)
 {
 }
@@ -51,21 +51,21 @@ void ScrAT::initialize()
 
     glGenVertexArrays(static_cast<GLsizei>(m_vaos.size()), m_vaos.data());
 
-    glBindVertexArray(m_vaos[0]);
+    glBindVertexArray(m_vaos[VAO::ScreenAlignedTriangle]);
     glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, m_vbos[0]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(float) * sizeof(verticesScrAT), verticesScrAT, GL_STATIC_DRAW);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, nullptr);
     glBindVertexArray(0);
 
-    glBindVertexArray(m_vaos[1]);
+    glBindVertexArray(m_vaos[VAO::ScreenAlignedQuad]);
     glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, m_vbos[1]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(float) * sizeof(verticesScrAQ), verticesScrAQ, GL_STATIC_DRAW);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, nullptr);
     glBindVertexArray(0);
 
-    glBindVertexArray(m_vaos[2]);
+    glBindVertexArray(m_vaos[VAO::Empty]);
     glBindVertexArray(0);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -85,16 +85,16 @@ void ScrAT::initialize()
     }
 
     {
-        m_programs[2] = glCreateProgram();
+        m_programs[Program::RecordAVC] = glCreateProgram();
 
         m_vertexShaders[2] = glCreateShader(GL_VERTEX_SHADER);
         m_geometryShaders[0] = glCreateShader(GL_GEOMETRY_SHADER);
 
-        glAttachShader(m_programs[2], m_vertexShaders[2]);
-        glAttachShader(m_programs[2], m_geometryShaders[0]);
-        glAttachShader(m_programs[2], m_fragmentShaders[0]);
+        glAttachShader(m_programs[Program::RecordAVC], m_vertexShaders[2]);
+        glAttachShader(m_programs[Program::RecordAVC], m_geometryShaders[0]);
+        glAttachShader(m_programs[Program::RecordAVC], m_fragmentShaders[0]);
 
-        glBindFragDataLocation(m_programs[2], 0, "out_color");
+        glBindFragDataLocation(m_programs[Program::RecordAVC], 0, "out_color");
     }
 
     loadShaders();
@@ -168,9 +168,9 @@ bool ScrAT::loadShaders()
         if (!success)
             return false;
 
-        gl::glLinkProgram(m_programs[0]);
+        gl::glLinkProgram(m_programs[Program::Record]);
 
-        success &= cgutils::checkForLinkerError(m_programs[0], "record program");
+        success &= cgutils::checkForLinkerError(m_programs[Program::Record], "record program");
         if (!success)
             return false;
     }
@@ -196,9 +196,9 @@ bool ScrAT::loadShaders()
         if (!success)
             return false;
 
-        gl::glLinkProgram(m_programs[2]);
+        gl::glLinkProgram(m_programs[Program::Replay]);
 
-        success &= cgutils::checkForLinkerError(m_programs[2], "record program");
+        success &= cgutils::checkForLinkerError(m_programs[Program::Replay], "replay program");
         if (!success)
             return false;
     }
@@ -224,9 +224,9 @@ bool ScrAT::loadShaders()
         if (!success)
             return false;
 
-        gl::glLinkProgram(m_programs[1]);
+        gl::glLinkProgram(m_programs[Program::RecordAVC]);
 
-        success &= cgutils::checkForLinkerError(m_programs[1], "replay program");
+        success &= cgutils::checkForLinkerError(m_programs[Program::RecordAVC], "record program");
         if (!success)
             return false;
     }
@@ -239,17 +239,17 @@ bool ScrAT::loadShaders()
 
 void ScrAT::loadUniformLocations()
 {
-    //glUseProgram(m_programs[0]);
-    m_uniformLocations[2] = glGetUniformLocation(m_programs[0], "benchmark");
+    glUseProgram(m_programs[Program::Record]);
+    m_uniformLocations[2] = glGetUniformLocation(m_programs[Program::Record], "benchmark");
 
-    //glUseProgram(m_programs[1]);
-    m_uniformLocations[0] = glGetUniformLocation(m_programs[1], "fragmentIndex");
-    m_uniformLocations[1] = glGetUniformLocation(m_programs[1], "threshold");
+    glUseProgram(m_programs[Program::Replay]);
+    m_uniformLocations[0] = glGetUniformLocation(m_programs[Program::Replay], "fragmentIndex");
+    m_uniformLocations[1] = glGetUniformLocation(m_programs[Program::Replay], "threshold");
 
-    //glUseProgram(m_programs[2]);
-    m_uniformLocations[3] = glGetUniformLocation(m_programs[2], "benchmark");
+    glUseProgram(m_programs[Program::RecordAVC]);
+    m_uniformLocations[3] = glGetUniformLocation(m_programs[Program::RecordAVC], "benchmark");
 
-    //glUseProgram(0);
+    glUseProgram(0);
 }
 
 void ScrAT::resize(int w, int h)
@@ -290,14 +290,12 @@ std::uint64_t ScrAT::record(const bool benchmark)
 
     auto elapsed = std::uint64_t{ 0 };
 
-    if (m_vaoMode == 4)
+    if (m_vaoMode == Mode::AVC_One_DrawCall)
     {
-        glUseProgram(m_programs[2]);
+        glUseProgram(m_programs[Program::RecordAVC]);
         glUniform1i(m_uniformLocations[3], static_cast<GLint>(benchmark));
-    }
-    else
-    {
-        glUseProgram(m_programs[0]);
+    } else {
+        glUseProgram(m_programs[Program::Record]);
         glUniform1i(m_uniformLocations[2], static_cast<GLint>(benchmark));
     }
 
@@ -306,30 +304,30 @@ std::uint64_t ScrAT::record(const bool benchmark)
 
     switch(m_vaoMode)
     {
-    case 0:
+    case Mode::Two_Triangles_Two_DrawCalls:
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        glBindVertexArray(m_vaos[1]);
+        glBindVertexArray(m_vaos[VAO::ScreenAlignedQuad]);
         glDrawArrays(GL_TRIANGLES, 0, 3);
         glDrawArrays(GL_TRIANGLES, 1, 3);
         break;
-    case 1:
+    case Mode::Two_Triangles_One_DrawCall:
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        glBindVertexArray(m_vaos[1]);
+        glBindVertexArray(m_vaos[VAO::ScreenAlignedQuad]);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         break;
-    case 2:
+    case Mode::One_Triangle_One_DrawCall:
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        glBindVertexArray(m_vaos[0]);
+        glBindVertexArray(m_vaos[VAO::ScreenAlignedTriangle]);
         glDrawArrays(GL_TRIANGLES, 0, 3);
         break;
-    case 3:
+    case Mode::Quad_Fill_Rectangle:
         glPolygonMode(GL_FRONT_AND_BACK, gl::GL_FILL_RECTANGLE_NV);
-        glBindVertexArray(m_vaos[1]);
+        glBindVertexArray(m_vaos[VAO::ScreenAlignedQuad]);
         glDrawArrays(GL_TRIANGLES, 0, 3);
         break;
-    case 4:
+    case Mode::AVC_One_DrawCall:
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        glBindVertexArray(m_vaos[2]);
+        glBindVertexArray(m_vaos[VAO::Empty]);
         glDrawArrays(GL_POINTS, 0, 1);
         break;
     }
@@ -381,12 +379,12 @@ void ScrAT::replay()
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, m_textures[0]);
 
-    glUseProgram(m_programs[1]);
+    glUseProgram(m_programs[Program::Replay]);
     glUniform1f(m_uniformLocations[1], m_threshold[1]);
 
     // use screen aligned triangle here
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    glBindVertexArray(m_vaos[0]);
+    glBindVertexArray(m_vaos[VAO::ScreenAlignedTriangle]);
     glDrawArrays(GL_TRIANGLES, 0, 3);
     glBindVertexArray(0);
 
@@ -412,7 +410,7 @@ void ScrAT::render()
             "(2) single triangle, single draw call :     ",
             "(3) fill rectangle ext, single draw call:   ",
             "(4) AVC, single draw call:                  " };
-        std::cout << modes[m_vaoMode] <<  cgutils::humanTimeDuration(elapsed / 1000) << std::endl;
+        std::cout << modes[unsigned int(m_vaoMode)] <<  cgutils::humanTimeDuration(elapsed / 1000) << std::endl;
 
         record(false);
         m_recorded = true;
@@ -444,7 +442,7 @@ void ScrAT::resetAC()
 void ScrAT::switchVAO()
 {
     m_recorded = false;
-    m_vaoMode = (++m_vaoMode) % 5;
+    m_vaoMode = Mode((static_cast<unsigned int>(m_vaoMode) + 1u) % 5);
 }
 
 void ScrAT::incrementReplaySpeed()
