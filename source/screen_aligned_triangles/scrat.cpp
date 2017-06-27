@@ -137,7 +137,7 @@ void ScrAT::initialize()
     glGenQueries(1, &m_query);
 }
 
-bool ScrAT::loadShader(const std::string & sourceFile, const GLuint & shader)
+bool ScrAT::loadShader(const std::string & sourceFile, const gl::GLuint & shader)
 {
     const auto shaderSource = cgutils::textFromFile(sourceFile.c_str());
     const auto shaderSource_ptr = shaderSource.c_str();

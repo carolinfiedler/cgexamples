@@ -14,7 +14,7 @@ public:
     ~ScrAT();
 
     void initialize();
-	static bool loadShader(const std::string & sourceFile, const GLuint & shader);
+	static bool loadShader(const std::string & sourceFile, const gl::GLuint & shader);
     bool loadShaders();
 
     void resize(int w, int h);
