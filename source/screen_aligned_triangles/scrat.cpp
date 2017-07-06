@@ -6,6 +6,7 @@
 #include <string>
 
 #include <glbinding/gl32ext/gl.h>
+#include <glbinding/Meta.h>
 
 #include <cgutils/common.h>
 
@@ -149,6 +150,11 @@ void ScrAT::initialize()
     // setup time measurement
 
     glGenQueries(1, &m_query);
+
+    // test whether the NV_fill_rectangle extension is supported. If not, warn user
+
+    if (glbinding::Meta::getExtension("NV_fill_rectangle") == gl::GLextension::UNKNOWN)
+        std::cout << "Your graphics card does not support the NV_fill_rectangle extension." << std::endl << "Draw mode 3 will not work properly." << std::endl << std::endl;
 }
 
 bool ScrAT::loadShader(const std::string & sourceFile, const gl::GLuint & shader)
