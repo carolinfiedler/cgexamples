@@ -19,7 +19,6 @@ public:
 
     void resize(int w, int h);
     void render();
-    void execute();
 
     void resetAC();
     void switchVAO();
@@ -36,50 +35,52 @@ protected:
 		AVC_One_DrawCall = 4u
 	};
 
-	enum Program {
-		Record = 0,
-		Replay = 1, 
-		RecordAVC = 2
-	};
-
-	enum VAO {
-		ScreenAlignedTriangle = 0,
-		ScreenAlignedQuad = 1,
-		Empty = 2
-	};
-
 protected:
     void loadUniformLocations();
 
+    void record();
     std::uint64_t record(bool benchmark);
     void replay();
 
     void updateThreshold();
 
 protected:
-    std::array<gl::GLuint, 2> m_vbos;
+    gl::GLuint m_fbo;
+    gl::GLuint m_texture;
+    int m_width;
+    int m_height;
 
-    std::array<gl::GLuint, 3> m_programs;
+    Mode m_vaoMode;
+
+    gl::GLuint m_VAO_screenAlignedTriangle,
+               m_VAO_screenAlignedQuad,
+               m_VAO_empty;
+
+    gl::GLuint m_VBO_screenAlignedTriangle,
+               m_VBO_screenAlignedQuad;
+
+    gl::GLuint m_program_record,
+               m_program_replay,
+               m_program_recordAVC;
+
     std::array<gl::GLuint, 3> m_vertexShaders;
     std::array<gl::GLuint, 2> m_geometryShaders;
     std::array<gl::GLuint, 2> m_fragmentShaders;
 
-    std::array<gl::GLuint, 3> m_vaos;
-    gl::GLuint m_fbo;
-    std::array<gl::GLuint, 1> m_textures;
-    std::array<gl::GLuint, 4> m_uniformLocations;
+    gl::GLuint m_uniformLocation_indexSampler,
+               m_uniformLocation_indexThreshold,
+               m_uniformLocation_benchmark,
+               m_uniformLocation_benchmark_avc;
+
+    gl::GLuint m_acbuffer;   
+    
+    bool m_recorded;
+    float m_lastIndex;
+    float m_currentIndex;
 
     gl::GLuint m_query;
-    gl::GLuint m_acbuffer;   
-
-    bool m_recorded;
-    std::array<float, 3> m_threshold; // { last, current, max }
-	Mode m_vaoMode;
 
     using msecs = std::chrono::duration<float, std::chrono::milliseconds::period>;
     std::chrono::time_point<std::chrono::high_resolution_clock> m_time;
     std::uint32_t m_timeDurationMagnitude;
-
-    int m_width;
-    int m_height;
 };

@@ -1,7 +1,8 @@
 #version 420 core
 
-uniform sampler2D fragmentLocation;
+uniform sampler2D fragmentIndex;
 uniform float threshold;
+
 in vec2 v_uv;
 
 out vec4 out_color;
@@ -14,7 +15,7 @@ vec3 hsl2rgb(in vec3 hsl) // https://www.shadertoy.com/view/4sS3Dc
 
 void main()
 {
-	float index = texture(fragmentLocation, v_uv).r;
+	float index = texture(fragmentIndex, v_uv).r;
 	if(threshold < index)
 		discard;
 
