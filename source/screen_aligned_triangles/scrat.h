@@ -26,12 +26,12 @@ public:
 
     void initialize();
     bool loadShaders();
-
     void resize(int w, int h);
-    void render();
 
+    void render();
     void benchmark();
     void reset();
+
     void switchDrawMode();
     void switchDrawMode(const Mode mode);
 
@@ -88,6 +88,7 @@ protected:
     gl::GLuint m_query;
 
     using msecs = std::chrono::duration<float, std::chrono::milliseconds::period>;
+
     std::chrono::time_point<std::chrono::high_resolution_clock> m_time;
     std::uint32_t m_timeDurationMagnitude;
 };

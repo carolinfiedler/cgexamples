@@ -169,7 +169,8 @@ void ScrAT::initialize()
         std::cout << "Your graphics card does not support the NV_fill_rectangle extension." << std::endl << "Draw mode 4 will not work properly." << std::endl << std::endl;
 }
 
-namespace {
+namespace 
+{
 
 // extract method
 bool loadShader(const std::string & sourceFile, const gl::GLuint & shader)
@@ -268,6 +269,133 @@ void ScrAT::resize(int w, int h)
     glViewport(0, 0, m_width, m_height);
 }
 
+void ScrAT::render()
+{
+    if (!m_recorded)
+    {
+        std::cout << "  draw mode (" << static_cast<unsigned int>(m_vaoMode) + 1u << ") - " << s_modeDescriptions[static_cast<unsigned int>(m_vaoMode)] << std::endl;
+        record(false);
+        m_recorded = true;
+
+        m_lastIndex = 0;
+        m_time = std::chrono::high_resolution_clock::now();
+    }
+
+    replay();
+    updateThreshold();
+}
+
+
+std::uint64_t ScrAT::record(const bool benchmark)
+{
+    // clear record buffer
+
+    glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    static const GLfloat color[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+    glClearBufferfv(GL_COLOR, 0, color);
+
+    // reset and bind atomic counter
+
+    const auto counter = 0u;
+    glBindBuffer(gl32ext::GL_ATOMIC_COUNTER_BUFFER, m_acbuffer);
+    glBufferSubData(gl32ext::GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint), &counter);
+    glBindBuffer(gl32ext::GL_ATOMIC_COUNTER_BUFFER, 0);
+
+    glBindBufferBase(gl32ext::GL_ATOMIC_COUNTER_BUFFER, 0, m_acbuffer);
+
+    glUseProgram(m_vaoMode == Mode::AVC_One_DrawCall ? m_program_recordAVC : m_program_record);
+    glUniform1i(m_vaoMode == Mode::AVC_One_DrawCall ? m_uniformLocation_benchmark_avc : m_program_record, static_cast<GLint>(benchmark));
+
+    // draw
+
+    auto elapsed = std::uint64_t{ 0 };
+    if (benchmark)
+        glBeginQuery(gl::GL_TIME_ELAPSED, m_query);
+
+    switch (m_vaoMode)
+    {
+    case Mode::Two_Triangles_Two_DrawCalls:
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        glBindVertexArray(m_VAO_screenAlignedQuad);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glDrawArrays(GL_TRIANGLES, 1, 3);
+        break;
+    case Mode::Two_Triangles_One_DrawCall:
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        glBindVertexArray(m_VAO_screenAlignedQuad);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        break;
+    case Mode::One_Triangle_One_DrawCall:
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        glBindVertexArray(m_VAO_screenAlignedTriangle);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+        break;
+    case Mode::Quad_Fill_Rectangle:
+        glPolygonMode(GL_FRONT_AND_BACK, gl::GL_FILL_RECTANGLE_NV);
+        glBindVertexArray(m_VAO_screenAlignedQuad);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+        break;
+    case Mode::AVC_One_DrawCall:
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        glBindVertexArray(m_VAO_empty);
+        glDrawArrays(GL_POINTS, 0, 1);
+        break;
+    }
+
+    if (benchmark)
+    {
+        glEndQuery(gl::GL_TIME_ELAPSED);
+
+        auto done = 0;
+        while (!done)
+            glGetQueryObjectiv(m_query, GL_QUERY_RESULT_AVAILABLE, &done);
+
+        glGetQueryObjectui64v(m_query, GL_QUERY_RESULT, &elapsed);
+    }
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+    glUseProgram(0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindBufferBase(gl32ext::GL_ATOMIC_COUNTER_BUFFER, 0, 0);
+
+    if (!benchmark)
+    {
+        glBindBuffer(gl32ext::GL_ATOMIC_COUNTER_BUFFER, m_acbuffer);
+
+        auto data = 0u;
+        gl32ext::glMemoryBarrier(gl32ext::GL_ATOMIC_COUNTER_BARRIER_BIT);
+        glGetBufferSubData(gl32ext::GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint), &data);
+
+        glBindBuffer(gl32ext::GL_ATOMIC_COUNTER_BUFFER, 0);
+    }
+
+    return elapsed;
+}
+
+void ScrAT::replay()
+{
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, m_texture);
+
+    glUseProgram(m_program_replay);
+    glUniform1f(m_uniformLocation_indexThreshold, m_currentIndex);
+
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glBindVertexArray(m_VAO_screenAlignedTriangle);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glBindVertexArray(0);
+
+    glUseProgram(0);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+
 void ScrAT::benchmark()
 {
     static const unsigned int warmUpIterations = 150000u;
@@ -306,141 +434,15 @@ void ScrAT::benchmark()
     m_recorded = false;
 }
 
-std::uint64_t ScrAT::record(const bool benchmark)
+void ScrAT::reset()
 {
-    // clear record buffer
-
-    glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    static const GLfloat color[] = { 0.0f, 0.0f, 0.0f, 0.0f };
-    glClearBufferfv(GL_COLOR, 0, color);
-
-    // reset and bind atomic counter
-
-    const auto counter = 0u;
-    glBindBuffer(gl32ext::GL_ATOMIC_COUNTER_BUFFER, m_acbuffer);
-    glBufferSubData(gl32ext::GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint), &counter);
-    glBindBuffer(gl32ext::GL_ATOMIC_COUNTER_BUFFER, 0);
-
-    glBindBufferBase(gl32ext::GL_ATOMIC_COUNTER_BUFFER, 0, m_acbuffer);
-    
-    glUseProgram(m_vaoMode == Mode::AVC_One_DrawCall ? m_program_recordAVC : m_program_record);
-    glUniform1i(m_vaoMode == Mode::AVC_One_DrawCall ? m_uniformLocation_benchmark_avc : m_program_record, static_cast<GLint>(benchmark));
-
-    // draw
-
-    auto elapsed = std::uint64_t{ 0 };
-    if(benchmark)
-        glBeginQuery(gl::GL_TIME_ELAPSED, m_query);
-
-    switch(m_vaoMode)
-    {
-    case Mode::Two_Triangles_Two_DrawCalls:
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        glBindVertexArray(m_VAO_screenAlignedQuad);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
-        glDrawArrays(GL_TRIANGLES, 1, 3);
-        break;
-    case Mode::Two_Triangles_One_DrawCall:
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        glBindVertexArray(m_VAO_screenAlignedQuad);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-        break;
-    case Mode::One_Triangle_One_DrawCall:
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        glBindVertexArray(m_VAO_screenAlignedTriangle);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
-        break;
-    case Mode::Quad_Fill_Rectangle:
-        glPolygonMode(GL_FRONT_AND_BACK, gl::GL_FILL_RECTANGLE_NV);
-        glBindVertexArray(m_VAO_screenAlignedQuad);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
-        break;
-    case Mode::AVC_One_DrawCall:
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        glBindVertexArray(m_VAO_empty);
-        glDrawArrays(GL_POINTS, 0, 1);
-        break;
-    }
-
-    if (benchmark)
-    {
-        glEndQuery(gl::GL_TIME_ELAPSED);       
-
-        auto done = 0;
-        while (!done)
-            glGetQueryObjectiv(m_query, GL_QUERY_RESULT_AVAILABLE, &done);
-
-        glGetQueryObjectui64v(m_query, GL_QUERY_RESULT, &elapsed);
-    }
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-    glUseProgram(0);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glBindBufferBase(gl32ext::GL_ATOMIC_COUNTER_BUFFER, 0, 0);  
-
-    if (!benchmark)
-    {
-        glBindBuffer(gl32ext::GL_ATOMIC_COUNTER_BUFFER, m_acbuffer);
-
-        auto data = 0u;
-        gl32ext::glMemoryBarrier(gl32ext::GL_ATOMIC_COUNTER_BARRIER_BIT);
-        glGetBufferSubData(gl32ext::GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint), &data);
-
-        glBindBuffer(gl32ext::GL_ATOMIC_COUNTER_BUFFER, 0);
-    }
-
-    return elapsed;
-}
-
-void ScrAT::replay()
-{
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, m_texture);
-
-    glUseProgram(m_program_replay);
-    glUniform1f(m_uniformLocation_indexThreshold, m_currentIndex);
-
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    glBindVertexArray(m_VAO_screenAlignedTriangle);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
-    glBindVertexArray(0);
-
-    glUseProgram(0);
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, 0);
-}
-
-void ScrAT::render()
-{
-    if (!m_recorded)
-    {
-        std::cout << "  draw mode (" << static_cast<unsigned int>(m_vaoMode) + 1u << ") - " << s_modeDescriptions[static_cast<unsigned int>(m_vaoMode)] << std::endl;
-        record(false);
-        m_recorded = true;
-
-        m_lastIndex = 0;
-        m_time = std::chrono::high_resolution_clock::now();
-    }
-
-    replay();
-    updateThreshold();
+    m_recorded = false;
 }
 
 void ScrAT::updateThreshold()
 {
     m_currentIndex = m_lastIndex + 0.1f * powf(10.f, static_cast<float>(m_timeDurationMagnitude))
         * msecs(std::chrono::high_resolution_clock::now() - m_time).count();
-}
-
-void ScrAT::reset()
-{
-    m_recorded = false;
 }
 
 void ScrAT::switchDrawMode()
