@@ -47,7 +47,7 @@ void keyCallback(GLFWwindow * /*window*/, int key, int /*scancode*/, int action,
         break;
 
     case GLFW_KEY_R:
-        example.resetAC();
+        example.reset();
         break;
 
     case GLFW_KEY_V:

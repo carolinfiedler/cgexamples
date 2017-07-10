@@ -20,8 +20,8 @@ public:
     void resize(int w, int h);
     void render();
 
-    void resetAC();
     void switchVAO();
+    void reset();
 
     void incrementReplaySpeed();
     void decrementReplaySpeed();
@@ -63,9 +63,14 @@ protected:
                m_program_replay,
                m_program_recordAVC;
 
-    std::array<gl::GLuint, 3> m_vertexShaders;
-    std::array<gl::GLuint, 2> m_geometryShaders;
-    std::array<gl::GLuint, 2> m_fragmentShaders;
+    gl::GLuint m_vertexShader_record,
+               m_vertexShader_replay,
+               m_vertexShader_recordAVC;
+
+    gl::GLuint m_geometryShader_recordAVC;
+    
+    gl::GLuint m_fragmentShader_record,
+               m_fragmentShader_replay;
 
     gl::GLuint m_uniformLocation_indexSampler,
                m_uniformLocation_indexThreshold,
