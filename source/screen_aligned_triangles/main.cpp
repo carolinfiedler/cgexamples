@@ -49,9 +49,33 @@ void keyCallback(GLFWwindow * /*window*/, int key, int /*scancode*/, int action,
     case GLFW_KEY_R:
         example.reset();
         break;
+        
+    case GLFW_KEY_M:
+        example.switchDrawMode();
+        break;
 
-    case GLFW_KEY_V:
-        example.switchVAO();
+    case GLFW_KEY_P:
+        example.benchmark();
+        break;
+
+    case GLFW_KEY_1:
+        example.switchDrawMode(ScrAT::Mode::Two_Triangles_Two_DrawCalls);
+        break;
+
+    case GLFW_KEY_2:
+        example.switchDrawMode(ScrAT::Mode::Two_Triangles_One_DrawCall);
+        break;
+
+    case GLFW_KEY_3:
+        example.switchDrawMode(ScrAT::Mode::One_Triangle_One_DrawCall);
+        break;
+
+    case GLFW_KEY_4:
+        example.switchDrawMode(ScrAT::Mode::Quad_Fill_Rectangle);
+        break;
+
+    case GLFW_KEY_5:
+        example.switchDrawMode(ScrAT::Mode::AVC_One_DrawCall);
         break;
 
     case GLFW_KEY_T:
@@ -101,10 +125,16 @@ int main(int /*argc*/, char ** /*argv*/)
 
     std::cout << "Screen Aligned Quad vs. Triangle(s)" << std::endl << std::endl;
 
-    std::cout << "Key Binding: " << std::endl
+    std::cout << "Key Binding: " << std::endl << std::endl
         << "  [F5] reload shaders" << std::endl
-        << "  [r]  reset record and benchmark and record anew" << std::endl
-        << "  [v]  switch draw mode and associated vertex array" << std::endl
+        << "  [r]  reset record and benchmark and record anew" << std::endl << std::endl
+        << "  [m]  switch over to next draw mode and associated vertex array" << std::endl
+        << "  [1]  ... draw mode (1) - " << ScrAT::s_modeDescriptions[0] << std::endl
+        << "  [2]  ... draw mode (2) - " << ScrAT::s_modeDescriptions[1] << std::endl
+        << "  [3]  ... draw mode (3) - " << ScrAT::s_modeDescriptions[2] << std::endl
+        << "  [4]  ... draw mode (4) - " << ScrAT::s_modeDescriptions[3] << std::endl
+        << "  [5]  ... draw mode (5) - " << ScrAT::s_modeDescriptions[4] << std::endl << std::endl
+        << "  [P]  measure performance (may take a few minutes)" << std::endl << std::endl
         << "  [T]  increment replay speed (by magnitude)" << std::endl
         << "  [t]  decrement replay speed (by magnitude)" << std::endl
         << std::endl;

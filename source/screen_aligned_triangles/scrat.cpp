@@ -14,6 +14,14 @@
 using namespace gl32core;
 
 
+const std::array<std::string, 5> ScrAT::s_modeDescriptions = std::array<std::string, 5>{
+    "two triangles, two draw calls              ",
+    "two triangles, single draw call (quad)     ",
+    "single triangle, single draw call          ",
+    "fill rectangle ext, single draw call       ",
+    "Attributed Vertex Cloud, single draw call  " };
+
+
 ScrAT::ScrAT()
 : m_recorded(false)
 , m_vaoMode(Mode::Two_Triangles_Two_DrawCalls)
@@ -158,7 +166,7 @@ void ScrAT::initialize()
     // test whether the NV_fill_rectangle extension is supported. If not, warn user
 
     if (glbinding::Meta::getExtension("NV_fill_rectangle") == gl::GLextension::UNKNOWN)
-        std::cout << "Your graphics card does not support the NV_fill_rectangle extension." << std::endl << "Draw mode 3 will not work properly." << std::endl << std::endl;
+        std::cout << "Your graphics card does not support the NV_fill_rectangle extension." << std::endl << "Draw mode 4 will not work properly." << std::endl << std::endl;
 }
 
 namespace {
@@ -260,33 +268,42 @@ void ScrAT::resize(int w, int h)
     glViewport(0, 0, m_width, m_height);
 }
 
-void ScrAT::record()
+void ScrAT::benchmark()
 {
-    static const unsigned int iterations = 1000u;
+    static const unsigned int warmUpIterations = 150000u;
+    static const unsigned int iterations = 10000u;
 
-    std::cout << "benchmarking ... ";
+    static const auto modes = std::array<Mode, 5>{
+        Mode::Two_Triangles_Two_DrawCalls, 
+        Mode::Two_Triangles_One_DrawCall, 
+        Mode::One_Triangle_One_DrawCall,
+        Mode::Quad_Fill_Rectangle,
+        Mode::AVC_One_DrawCall};
 
-    for (auto i = 0u; i < iterations; ++i)
+    const Mode currentMode = m_vaoMode;
+
+    std::cout << std::endl << "Measure Performance" << std::endl << "  warming up ..." << std::endl;
+
+    for (auto i = 0u; i < warmUpIterations; ++i)
         record(true);
 
-    auto elapsed = std::uint64_t{ 0 };
-    for (auto i = 0u; i < iterations; ++i)
-        elapsed += record(true);
+    std::cout << "  benchmarking ... " << std::endl << std::endl;
 
-    static const auto modes = std::array<std::string, 5>{
-        "(0) two triangles, two draw calls :         ",
-        "(1) two triangles, single draw call (quad): ",
-        "(2) single triangle, single draw call :     ",
-        "(3) fill rectangle ext, single draw call:   ",
-        "(4) AVC, single draw call:                  " };
-    
-    std::cout << modes[static_cast<unsigned int>(m_vaoMode)] << cgutils::humanTimeDuration(elapsed / iterations) << std::endl;
+    for( const auto mode : modes)
+    {
+        m_vaoMode = mode;
+        auto elapsed = std::uint64_t{ 0 };
 
-    record(false);
-    m_recorded = true;
+        for (auto i = 0u; i < iterations; ++i)
+            elapsed += record(true);
 
-    m_lastIndex = 0;
-    m_time = std::chrono::high_resolution_clock::now();
+        std::cout << "  (" << static_cast<unsigned int>(mode) << ") " << s_modeDescriptions[static_cast<unsigned int>(mode)] << cgutils::humanTimeDuration(elapsed / iterations) << std::endl;
+    }
+
+    std::cout << std::endl << std::endl;
+
+    m_vaoMode = currentMode;
+    m_recorded = false;
 }
 
 std::uint64_t ScrAT::record(const bool benchmark)
@@ -380,7 +397,6 @@ std::uint64_t ScrAT::record(const bool benchmark)
 
 void ScrAT::replay()
 {
-    glViewport(0, 0, m_width, m_height);
     glClear(GL_COLOR_BUFFER_BIT);
 
     glActiveTexture(GL_TEXTURE0);
@@ -403,7 +419,14 @@ void ScrAT::replay()
 void ScrAT::render()
 {
     if (!m_recorded)
-        record();
+    {
+        std::cout << "  draw mode (" << static_cast<unsigned int>(m_vaoMode) + 1u << ") - " << s_modeDescriptions[static_cast<unsigned int>(m_vaoMode)] << std::endl;
+        record(false);
+        m_recorded = true;
+
+        m_lastIndex = 0;
+        m_time = std::chrono::high_resolution_clock::now();
+    }
 
     replay();
     updateThreshold();
@@ -420,10 +443,16 @@ void ScrAT::reset()
     m_recorded = false;
 }
 
-void ScrAT::switchVAO()
+void ScrAT::switchDrawMode()
 {
     m_recorded = false;
-    m_vaoMode = Mode((static_cast<unsigned int>(m_vaoMode) + 1u) % 5u);
+    m_vaoMode = static_cast<Mode>((static_cast<unsigned int>(m_vaoMode) + 1u) % 5u);
+}
+
+void ScrAT::switchDrawMode(const Mode mode)
+{
+    m_recorded = false;
+    m_vaoMode = mode;
 }
 
 void ScrAT::incrementReplaySpeed()

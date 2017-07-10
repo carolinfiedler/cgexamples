@@ -10,35 +10,37 @@
 class ScrAT
 {
 public:
+    enum class Mode : unsigned int {
+        Two_Triangles_Two_DrawCalls = 0u,
+        Two_Triangles_One_DrawCall = 1u,
+        One_Triangle_One_DrawCall = 2u,
+        Quad_Fill_Rectangle = 3u,
+        AVC_One_DrawCall = 4u
+    };
+
+    static const std::array<std::string, 5> s_modeDescriptions;
+
+public:
     ScrAT();
     ~ScrAT();
 
     void initialize();
-	static bool loadShader(const std::string & sourceFile, const gl::GLuint & shader);
     bool loadShaders();
 
     void resize(int w, int h);
     void render();
 
-    void switchVAO();
+    void benchmark();
     void reset();
+    void switchDrawMode();
+    void switchDrawMode(const Mode mode);
 
     void incrementReplaySpeed();
     void decrementReplaySpeed();
 
 protected:
-	enum class Mode : unsigned int {
-		Two_Triangles_Two_DrawCalls = 0u,
-		Two_Triangles_One_DrawCall = 1u,
-		One_Triangle_One_DrawCall = 2u,
-		Quad_Fill_Rectangle = 3u,
-		AVC_One_DrawCall = 4u
-	};
-
-protected:
     void loadUniformLocations();
 
-    void record();
     std::uint64_t record(bool benchmark);
     void replay();
 
