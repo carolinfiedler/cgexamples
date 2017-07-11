@@ -55,7 +55,7 @@ void keyCallback(GLFWwindow * /*window*/, int key, int /*scancode*/, int action,
         break;
 
     case GLFW_KEY_P:
-        example.benchmark();
+        example.benchmarkAll();
         break;
 
     case GLFW_KEY_1:

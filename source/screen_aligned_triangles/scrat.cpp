@@ -40,16 +40,19 @@ ScrAT::~ScrAT()
 
     glDeleteProgram(m_program_record);
     glDeleteProgram(m_program_replay);
-    glDeleteProgram(m_program_recordAVC);
+    glDeleteProgram(m_program_record_AVC);
+    glDeleteProgram(m_program_benchmark);
+    glDeleteProgram(m_program_benchmark_AVC);
 
     glDeleteShader(m_vertexShader_record);
     glDeleteShader(m_vertexShader_replay);
-    glDeleteShader(m_vertexShader_recordAVC);
+    glDeleteShader(m_vertexShader_record_AVC);
 
-    glDeleteShader(m_geometryShader_recordAVC);
+    glDeleteShader(m_geometryShader_record_AVC);
 
     glDeleteShader(m_fragmentShader_record);
     glDeleteShader(m_fragmentShader_replay);
+    glDeleteShader(m_fragmentShader_minimal);
     
     glDeleteFramebuffers(1, &m_fbo);
 
@@ -103,6 +106,7 @@ void ScrAT::initialize()
 
     glBindFragDataLocation(m_program_record, 0, "out_color");
 
+
     //create resources for replay program
 
     m_program_replay = glCreateProgram();
@@ -116,15 +120,35 @@ void ScrAT::initialize()
     
     //create resources for record AVC program
 
-    m_program_recordAVC = glCreateProgram();
-    m_vertexShader_recordAVC = glCreateShader(GL_VERTEX_SHADER);
-    m_geometryShader_recordAVC = glCreateShader(GL_GEOMETRY_SHADER);
+    m_program_record_AVC = glCreateProgram();
+    m_vertexShader_record_AVC = glCreateShader(GL_VERTEX_SHADER);
+    m_geometryShader_record_AVC = glCreateShader(GL_GEOMETRY_SHADER);
 
-    glAttachShader(m_program_recordAVC, m_vertexShader_recordAVC);
-    glAttachShader(m_program_recordAVC, m_geometryShader_recordAVC);
-    glAttachShader(m_program_recordAVC, m_fragmentShader_record);
+    glAttachShader(m_program_record_AVC, m_vertexShader_record_AVC);
+    glAttachShader(m_program_record_AVC, m_geometryShader_record_AVC);
+    glAttachShader(m_program_record_AVC, m_fragmentShader_record);
 
-    glBindFragDataLocation(m_program_recordAVC, 0, "out_color");
+    glBindFragDataLocation(m_program_record_AVC, 0, "out_color");
+
+    // create resources for benchmark program
+
+    m_program_benchmark = glCreateProgram();
+    m_fragmentShader_minimal = glCreateShader(GL_FRAGMENT_SHADER);
+
+    glAttachShader(m_program_benchmark, m_vertexShader_record);
+    glAttachShader(m_program_benchmark, m_fragmentShader_minimal);
+
+    glBindFragDataLocation(m_program_benchmark, 0, "out_color");
+
+    //create resources for benchmark AVC program
+
+    m_program_benchmark_AVC = glCreateProgram();
+
+    glAttachShader(m_program_benchmark_AVC, m_vertexShader_record_AVC);
+    glAttachShader(m_program_benchmark_AVC, m_geometryShader_record_AVC);
+    glAttachShader(m_program_benchmark_AVC, m_fragmentShader_minimal);
+
+    glBindFragDataLocation(m_program_benchmark_AVC, 0, "out_color");
 
     loadShaders();
 
@@ -188,15 +212,16 @@ bool loadShader(const std::string & sourceFile, const gl::GLuint & shader)
 
 bool ScrAT::loadShaders()
 {
-    static const auto sourceFiles = std::array<std::string, 6>{
+    static const auto sourceFiles = std::array<std::string, 7>{
         "data/screen_aligned_triangles/record.vert",
         "data/screen_aligned_triangles/record-empty.vert",
         "data/screen_aligned_triangles/record.geom",
         "data/screen_aligned_triangles/record.frag",
+        "data/screen_aligned_triangles/benchmark-minimal.frag",
         "data/screen_aligned_triangles/replay.vert",
         "data/screen_aligned_triangles/replay.frag"  };
 
-    // setup shaders of render program 
+    // setup shaders of record program 
 
     bool success = loadShader(sourceFiles[0], m_vertexShader_record);
     success &= loadShader(sourceFiles[3], m_fragmentShader_record);
@@ -211,8 +236,8 @@ bool ScrAT::loadShaders()
 
     // setup shaders of replay program
 
-    success = loadShader(sourceFiles[4], m_vertexShader_replay);
-    success &= loadShader(sourceFiles[5], m_fragmentShader_replay);
+    success = loadShader(sourceFiles[5], m_vertexShader_replay);
+    success &= loadShader(sourceFiles[6], m_fragmentShader_replay);
     if (!success)
         return false;
 
@@ -224,14 +249,34 @@ bool ScrAT::loadShaders()
  
     // setup shaders of record AVC program
 
-    success = loadShader(sourceFiles[1], m_vertexShader_recordAVC);
-    success &= loadShader(sourceFiles[2], m_geometryShader_recordAVC);
+    success = loadShader(sourceFiles[1], m_vertexShader_record_AVC);
+    success &= loadShader(sourceFiles[2], m_geometryShader_record_AVC);
     if (!success)
         return false;
 
-    gl::glLinkProgram(m_program_recordAVC);
+    gl::glLinkProgram(m_program_record_AVC);
 
-    success &= cgutils::checkForLinkerError(m_program_recordAVC, "record AVC program");
+    success &= cgutils::checkForLinkerError(m_program_record_AVC, "record AVC program");
+    if (!success)
+        return false;
+
+    // setup shaders of benchmark program 
+
+    success = loadShader(sourceFiles[4], m_fragmentShader_minimal);
+    if (!success)
+        return false;
+
+    gl::glLinkProgram(m_program_benchmark);
+
+    success &= cgutils::checkForLinkerError(m_program_record, "record benchmark program");
+    if (!success)
+        return false;
+
+    // setup shaders of record AVC benchmark program
+
+    gl::glLinkProgram(m_program_benchmark_AVC);
+
+    success &= cgutils::checkForLinkerError(m_program_benchmark_AVC, "record benchmark AVC program");
     if (!success)
         return false;
 
@@ -242,16 +287,12 @@ bool ScrAT::loadShaders()
 
 void ScrAT::loadUniformLocations()
 {
-    glUseProgram(m_program_recordAVC);
-    m_uniformLocation_benchmark = glGetUniformLocation(m_program_record, "benchmark");
-
-    glUseProgram(m_program_replay);
-    m_uniformLocation_indexSampler = glGetUniformLocation(m_program_replay, "fragmentIndex");
     m_uniformLocation_indexThreshold = glGetUniformLocation(m_program_replay, "threshold");
 
-    glUseProgram(m_program_recordAVC);
-    m_uniformLocation_benchmark_avc = glGetUniformLocation(m_program_recordAVC, "benchmark");
-
+    const gl::GLuint uniformLocation_indexSampler = glGetUniformLocation(m_program_replay, "fragmentIndex");
+    
+    glUseProgram(m_program_replay);
+    glUniform1i(uniformLocation_indexSampler, 0);
     glUseProgram(0);
 }
 
@@ -274,7 +315,7 @@ void ScrAT::render()
     if (!m_recorded)
     {
         std::cout << "  draw mode (" << static_cast<unsigned int>(m_vaoMode) + 1u << ") - " << s_modeDescriptions[static_cast<unsigned int>(m_vaoMode)] << std::endl;
-        record(false);
+        record();
         m_recorded = true;
 
         m_lastIndex = 0;
@@ -285,6 +326,28 @@ void ScrAT::render()
     updateThreshold();
 }
 
+void ScrAT::record()
+{
+    // reset and bind atomic counter
+    const auto counter = 0u;
+    glBindBuffer(gl32ext::GL_ATOMIC_COUNTER_BUFFER, m_acbuffer);
+    glBufferSubData(gl32ext::GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint), &counter);
+    glBindBuffer(gl32ext::GL_ATOMIC_COUNTER_BUFFER, 0);
+
+    glBindBufferBase(gl32ext::GL_ATOMIC_COUNTER_BUFFER, 0, m_acbuffer);
+
+    record(false);
+
+    // unbind atomic counter and read value
+    glBindBufferBase(gl32ext::GL_ATOMIC_COUNTER_BUFFER, 0, 0);
+    glBindBuffer(gl32ext::GL_ATOMIC_COUNTER_BUFFER, m_acbuffer);
+
+    auto data = 0u;
+    gl32ext::glMemoryBarrier(gl32ext::GL_ATOMIC_COUNTER_BARRIER_BIT);
+    glGetBufferSubData(gl32ext::GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint), &data);
+
+    glBindBuffer(gl32ext::GL_ATOMIC_COUNTER_BUFFER, 0);
+}
 
 std::uint64_t ScrAT::record(const bool benchmark)
 {
@@ -296,17 +359,10 @@ std::uint64_t ScrAT::record(const bool benchmark)
     static const GLfloat color[] = { 0.0f, 0.0f, 0.0f, 0.0f };
     glClearBufferfv(GL_COLOR, 0, color);
 
-    // reset and bind atomic counter
-
-    const auto counter = 0u;
-    glBindBuffer(gl32ext::GL_ATOMIC_COUNTER_BUFFER, m_acbuffer);
-    glBufferSubData(gl32ext::GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint), &counter);
-    glBindBuffer(gl32ext::GL_ATOMIC_COUNTER_BUFFER, 0);
-
-    glBindBufferBase(gl32ext::GL_ATOMIC_COUNTER_BUFFER, 0, m_acbuffer);
-
-    glUseProgram(m_vaoMode == Mode::AVC_One_DrawCall ? m_program_recordAVC : m_program_record);
-    glUniform1i(m_vaoMode == Mode::AVC_One_DrawCall ? m_uniformLocation_benchmark_avc : m_program_record, static_cast<GLint>(benchmark));
+    if (benchmark)
+        glUseProgram(m_vaoMode == Mode::AVC_One_DrawCall ? m_program_benchmark_AVC : m_program_benchmark );
+    else
+        glUseProgram(m_vaoMode == Mode::AVC_One_DrawCall ? m_program_record_AVC : m_program_record);
 
     // draw
 
@@ -359,18 +415,6 @@ std::uint64_t ScrAT::record(const bool benchmark)
     glBindVertexArray(0);
     glUseProgram(0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glBindBufferBase(gl32ext::GL_ATOMIC_COUNTER_BUFFER, 0, 0);
-
-    if (!benchmark)
-    {
-        glBindBuffer(gl32ext::GL_ATOMIC_COUNTER_BUFFER, m_acbuffer);
-
-        auto data = 0u;
-        gl32ext::glMemoryBarrier(gl32ext::GL_ATOMIC_COUNTER_BARRIER_BIT);
-        glGetBufferSubData(gl32ext::GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint), &data);
-
-        glBindBuffer(gl32ext::GL_ATOMIC_COUNTER_BUFFER, 0);
-    }
 
     return elapsed;
 }
@@ -396,7 +440,7 @@ void ScrAT::replay()
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void ScrAT::benchmark()
+void ScrAT::benchmarkAll()
 {
     static const unsigned int warmUpIterations = 150000u;
     static const unsigned int iterations = 10000u;
@@ -410,7 +454,8 @@ void ScrAT::benchmark()
 
     const Mode currentMode = m_vaoMode;
 
-    std::cout << std::endl << "Measure Performance" << std::endl << "  warming up ..." << std::endl;
+    std::cout << std::endl << "Measure Performance" << std::endl 
+              << "  warming up ..." << std::endl;
 
     for (auto i = 0u; i < warmUpIterations; ++i)
         record(true);
@@ -425,7 +470,7 @@ void ScrAT::benchmark()
         for (auto i = 0u; i < iterations; ++i)
             elapsed += record(true);
 
-        std::cout << "  (" << static_cast<unsigned int>(mode) << ") " << s_modeDescriptions[static_cast<unsigned int>(mode)] << cgutils::humanTimeDuration(elapsed / iterations) << std::endl;
+        std::cout << "  (" << static_cast<unsigned int>(mode) + 1 << ") " << s_modeDescriptions[static_cast<unsigned int>(mode)] << cgutils::humanTimeDuration(elapsed / iterations) << std::endl;
     }
 
     std::cout << std::endl << std::endl;

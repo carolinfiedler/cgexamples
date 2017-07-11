@@ -29,7 +29,7 @@ public:
     void resize(int w, int h);
 
     void render();
-    void benchmark();
+    void benchmarkAll();
     void reset();
 
     void switchDrawMode();
@@ -41,6 +41,7 @@ public:
 protected:
     void loadUniformLocations();
 
+    void record();
     std::uint64_t record(bool benchmark);
     void replay();
 
@@ -63,21 +64,21 @@ protected:
 
     gl::GLuint m_program_record,
                m_program_replay,
-               m_program_recordAVC;
+               m_program_record_AVC,
+               m_program_benchmark,
+               m_program_benchmark_AVC;
 
     gl::GLuint m_vertexShader_record,
                m_vertexShader_replay,
-               m_vertexShader_recordAVC;
+               m_vertexShader_record_AVC;
 
-    gl::GLuint m_geometryShader_recordAVC;
+    gl::GLuint m_geometryShader_record_AVC;
     
     gl::GLuint m_fragmentShader_record,
-               m_fragmentShader_replay;
+               m_fragmentShader_replay,
+               m_fragmentShader_minimal;
 
-    gl::GLuint m_uniformLocation_indexSampler,
-               m_uniformLocation_indexThreshold,
-               m_uniformLocation_benchmark,
-               m_uniformLocation_benchmark_avc;
+    gl::GLuint m_uniformLocation_indexThreshold;
 
     gl::GLuint m_acbuffer;   
     
