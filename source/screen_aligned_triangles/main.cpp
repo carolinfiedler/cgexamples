@@ -59,19 +59,19 @@ void keyCallback(GLFWwindow * /*window*/, int key, int /*scancode*/, int action,
         break;
 
     case GLFW_KEY_1:
-        example.switchDrawMode(ScrAT::Mode::Two_Triangles_Two_DrawCalls);
+        example.switchDrawMode(ScrAT::Mode::Quad);
         break;
 
     case GLFW_KEY_2:
-        example.switchDrawMode(ScrAT::Mode::Two_Triangles_One_DrawCall);
+        example.switchDrawMode(ScrAT::Mode::Triangle);
         break;
 
     case GLFW_KEY_3:
-        example.switchDrawMode(ScrAT::Mode::One_Triangle_One_DrawCall);
+        example.switchDrawMode(ScrAT::Mode::Quad_Fill_Rectangle_Extension);
         break;
 
     case GLFW_KEY_4:
-        example.switchDrawMode(ScrAT::Mode::Quad_Fill_Rectangle);
+        example.switchDrawMode(ScrAT::Mode::Two_Triangles_Two_DrawCalls);
         break;
 
     case GLFW_KEY_5:

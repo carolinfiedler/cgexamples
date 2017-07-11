@@ -15,17 +15,18 @@ using namespace gl32core;
 
 
 const std::array<std::string, 5> ScrAT::s_modeDescriptions = std::array<std::string, 5>{
-    "two triangles, two draw calls              ",
-    "two triangles, single draw call (quad)     ",
-    "single triangle, single draw call          ",
-    "fill rectangle ext, single draw call       ",
-    "Attributed Vertex Cloud, single draw call  " };
+    "quad (triangle strip), single draw call          ",
+    "triangle, single draw call                       ",
+    "quad fill rectangle extension, single draw call  ",
+    "two triangles, two draw calls                    ",
+    "attributed vertex cloud (AVC), single draw call  " };
 
 
 ScrAT::ScrAT()
 : m_recorded(false)
-, m_vaoMode(Mode::Two_Triangles_Two_DrawCalls)
+, m_vaoMode(Mode::Quad)
 , m_timeDurationMagnitude(3u)
+, m_NV_extension_supported(true)
 {
 }
 
@@ -188,9 +189,11 @@ void ScrAT::initialize()
     glGenQueries(1, &m_query);
 
     // test whether the NV_fill_rectangle extension is supported. If not, warn user
-
     if (glbinding::Meta::getExtension("NV_fill_rectangle") == gl::GLextension::UNKNOWN)
-        std::cout << "Your graphics card does not support the NV_fill_rectangle extension." << std::endl << "Draw mode 4 will not work properly." << std::endl << std::endl;
+    {
+        std::cout << "Your graphics card does not support the NV_fill_rectangle extension." << std::endl << "Draw mode 3 will not work properly." << std::endl << std::endl;
+        m_NV_extension_supported = false;
+    }
 }
 
 namespace 
@@ -378,17 +381,17 @@ std::uint64_t ScrAT::record(const bool benchmark)
         glDrawArrays(GL_TRIANGLES, 0, 3);
         glDrawArrays(GL_TRIANGLES, 1, 3);
         break;
-    case Mode::Two_Triangles_One_DrawCall:
+    case Mode::Quad:
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         glBindVertexArray(m_VAO_screenAlignedQuad);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         break;
-    case Mode::One_Triangle_One_DrawCall:
+    case Mode::Triangle:
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         glBindVertexArray(m_VAO_screenAlignedTriangle);
         glDrawArrays(GL_TRIANGLES, 0, 3);
         break;
-    case Mode::Quad_Fill_Rectangle:
+    case Mode::Quad_Fill_Rectangle_Extension:
         glPolygonMode(GL_FRONT_AND_BACK, gl::GL_FILL_RECTANGLE_NV);
         glBindVertexArray(m_VAO_screenAlignedQuad);
         glDrawArrays(GL_TRIANGLES, 0, 3);
@@ -446,10 +449,10 @@ void ScrAT::benchmarkAll()
     static const unsigned int iterations = 10000u;
 
     static const auto modes = std::array<Mode, 5>{
+        Mode::Quad, 
+        Mode::Triangle,
+        Mode::Quad_Fill_Rectangle_Extension,
         Mode::Two_Triangles_Two_DrawCalls, 
-        Mode::Two_Triangles_One_DrawCall, 
-        Mode::One_Triangle_One_DrawCall,
-        Mode::Quad_Fill_Rectangle,
         Mode::AVC_One_DrawCall};
 
     const Mode currentMode = m_vaoMode;
@@ -470,7 +473,10 @@ void ScrAT::benchmarkAll()
         for (auto i = 0u; i < iterations; ++i)
             elapsed += record(true);
 
-        std::cout << "  (" << static_cast<unsigned int>(mode) + 1 << ") " << s_modeDescriptions[static_cast<unsigned int>(mode)] << cgutils::humanTimeDuration(elapsed / iterations) << std::endl;
+        std::cout << "  (" << static_cast<unsigned int>(mode) + 1 << ") " << s_modeDescriptions[static_cast<unsigned int>(mode)] << cgutils::humanTimeDuration(elapsed / iterations);
+        if(mode == Mode::Quad_Fill_Rectangle_Extension && !m_NV_extension_supported)
+            std::cout << "   since NV_fill_rectangle extension is not supported this result may not be representative for draw mode 3";
+        std::cout << std::endl;
     }
 
     std::cout << std::endl << std::endl;

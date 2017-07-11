@@ -11,10 +11,10 @@ class ScrAT
 {
 public:
     enum class Mode : unsigned int {
-        Two_Triangles_Two_DrawCalls = 0u,
-        Two_Triangles_One_DrawCall = 1u,
-        One_Triangle_One_DrawCall = 2u,
-        Quad_Fill_Rectangle = 3u,
+        Quad = 0u,
+        Triangle = 1u,
+        Quad_Fill_Rectangle_Extension = 2u,
+        Two_Triangles_Two_DrawCalls = 3u,
         AVC_One_DrawCall = 4u
     };
 
@@ -92,4 +92,6 @@ protected:
 
     std::chrono::time_point<std::chrono::high_resolution_clock> m_time;
     std::uint32_t m_timeDurationMagnitude;
+
+    bool m_NV_extension_supported;
 };
