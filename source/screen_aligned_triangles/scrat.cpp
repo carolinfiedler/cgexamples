@@ -15,11 +15,11 @@ using namespace gl32core;
 
 
 const std::array<std::string, 5> ScrAT::s_modeDescriptions = std::array<std::string, 5>{
-    "quad (triangle strip), single draw call          ",
-    "triangle, single draw call                       ",
-    "quad fill rectangle extension, single draw call  ",
-    "two triangles, two draw calls                    ",
-    "attributed vertex cloud (AVC), single draw call  " };
+    "quad (triangle strip)                    ",
+    "triangle                                 ",
+    "fill rectangle extension                 ",
+    "quad (two triangles, two draw calls)     ",
+    "triangle (attributed vertex cloud, AVC)  " };
 
 
 ScrAT::ScrAT()
