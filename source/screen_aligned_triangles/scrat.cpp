@@ -189,7 +189,7 @@ void ScrAT::initialize()
     glGenQueries(1, &m_query);
 
     // test whether the NV_fill_rectangle extension is supported. If not, warn user
-    if (glbinding::Meta::getExtension("NV_fill_rectangle") == gl::GLextension::UNKNOWN)
+    if (glbinding::Meta::getExtension("GL_NV_fill_rectangle") == gl::GLextension::UNKNOWN)
     {
         std::cout << "Your graphics card does not support the NV_fill_rectangle extension." << std::endl << "Draw mode 3 will not work properly." << std::endl << std::endl;
         m_NV_extension_supported = false;
