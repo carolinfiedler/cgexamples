@@ -127,8 +127,8 @@ int main(int /*argc*/, char ** /*argv*/)
 
     std::cout << "Key Binding: " << std::endl << std::endl
         << "  [F5] reload shaders" << std::endl
-        << "  [r]  reset record and benchmark and record anew" << std::endl << std::endl
-        << "  [m]  switch over to next draw mode and associated vertex array" << std::endl
+        << "  [r]  reset record and record anew" << std::endl << std::endl
+        << "  [m]  switch over to next draw mode" << std::endl
         << "  [1]  ... draw mode (1) - " << ScrAT::s_modeDescriptions[0] << std::endl
         << "  [2]  ... draw mode (2) - " << ScrAT::s_modeDescriptions[1] << std::endl
         << "  [3]  ... draw mode (3) - " << ScrAT::s_modeDescriptions[2] << std::endl
