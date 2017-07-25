@@ -23,8 +23,8 @@ namespace
 
 auto example = ScrAT();
 
-const auto canvasWidth = 1440; // in pixel
-const auto canvasHeight = 900; // in pixel
+const auto canvasWidth = 640; // in pixel
+const auto canvasHeight = 1080 - 170; // in pixel
 
 // "The size callback ... which is called when the window is resized."
 // http://www.glfw.org/docs/latest/group__window.html#gaa40cd24840daa8c62f36cafc847c72b6
