@@ -26,7 +26,7 @@ void main()
     vec3 hsl = vec3(6.0 * index/numIndices, unpacked.r, unpacked.g);
 
     // highlight newest pixel and fade out highlighting over the last 250000 pixels
-    float fence = smoothstep(0.0, 1.0, (threshold - index) / 250000.0);
+    float fence = smoothstep(0.0, 1.0, (threshold - index) / 200000.0);
 
     vec3 color = hsl2rgb(vec3(hsl.r                                   // hue - continuously, not influenced by fence highlighting
                             , mix(1.0, hsl.g, fence)                  // saturation - restarts every 256 pixels
