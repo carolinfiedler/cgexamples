@@ -83,14 +83,14 @@ protected:
     gl::GLuint m_acbuffer;   
     
     bool m_recorded;
-    float m_lastIndex;
-    float m_currentIndex;
+    float m_startIndex;
+    float m_thresholdIndex;
 
     gl::GLuint m_query;
 
     using msecs = std::chrono::duration<float, std::chrono::milliseconds::period>;
 
-    std::chrono::time_point<std::chrono::high_resolution_clock> m_time;
+    std::chrono::time_point<std::chrono::high_resolution_clock> m_startTime;
     std::uint32_t m_timeDurationMagnitude;
 
     bool m_NV_extension_supported;

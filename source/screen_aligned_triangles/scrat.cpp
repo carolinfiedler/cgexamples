@@ -333,8 +333,8 @@ void ScrAT::render()
         record();
         m_recorded = true;
 
-        m_lastIndex = 0;
-        m_time = std::chrono::high_resolution_clock::now();
+        m_startIndex = 0;
+        m_startTime = std::chrono::high_resolution_clock::now();
     }
 
     replay();
@@ -442,7 +442,7 @@ void ScrAT::replay()
     glBindTexture(GL_TEXTURE_2D, m_texture);
 
     glUseProgram(m_program_replay);
-    glUniform1f(m_uniformLocation_indexThreshold, m_currentIndex);
+    glUniform1f(m_uniformLocation_indexThreshold, m_thresholdIndex);
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glBindVertexArray(m_VAO_screenAlignedTriangle);
@@ -504,8 +504,9 @@ void ScrAT::reset()
 
 void ScrAT::updateThreshold()
 {
-    m_currentIndex = m_lastIndex + 0.1f * powf(10.f, static_cast<float>(m_timeDurationMagnitude))
-        * msecs(std::chrono::high_resolution_clock::now() - m_time).count();
+	const auto msecsSinceStart = msecs(std::chrono::high_resolution_clock::now() - m_startTime).count();
+    m_thresholdIndex = m_startIndex  
+		+ 0.1f * powf(10.f, static_cast<float>(m_timeDurationMagnitude)) * msecsSinceStart;
 }
 
 void ScrAT::switchDrawMode()
@@ -524,8 +525,8 @@ void ScrAT::incrementReplaySpeed()
 {
     updateThreshold();
     
-    m_lastIndex = m_currentIndex;
-    m_time = std::chrono::high_resolution_clock::now();
+    m_startIndex = m_thresholdIndex;
+    m_startTime = std::chrono::high_resolution_clock::now();
 
     ++m_timeDurationMagnitude;
 }
@@ -537,8 +538,8 @@ void ScrAT::decrementReplaySpeed()
 
     updateThreshold();
 
-    m_lastIndex = m_currentIndex;
-    m_time = std::chrono::high_resolution_clock::now();
+    m_startIndex = m_thresholdIndex;
+    m_startTime = std::chrono::high_resolution_clock::now();
 
     --m_timeDurationMagnitude;
 }

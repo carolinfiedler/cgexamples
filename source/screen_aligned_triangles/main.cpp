@@ -23,8 +23,8 @@ namespace
 
 auto example = ScrAT();
 
-const auto canvasWidth = 1440; // in pixel
-const auto canvasHeight = 900; // in pixel
+const auto canvasWidth = 640; // in pixel
+const auto canvasHeight = 1080 - 170; // in pixel
 
 // "The size callback ... which is called when the window is resized."
 // http://www.glfw.org/docs/latest/group__window.html#gaa40cd24840daa8c62f36cafc847c72b6
@@ -127,8 +127,8 @@ int main(int /*argc*/, char ** /*argv*/)
 
     std::cout << "Key Binding: " << std::endl << std::endl
         << "  [F5] reload shaders" << std::endl
-        << "  [r]  reset record and benchmark and record anew" << std::endl << std::endl
-        << "  [m]  switch over to next draw mode and associated vertex array" << std::endl
+        << "  [r]  reset record and record anew" << std::endl << std::endl
+        << "  [m]  switch over to next draw mode" << std::endl
         << "  [1]  ... draw mode (1) - " << ScrAT::s_modeDescriptions[0] << std::endl
         << "  [2]  ... draw mode (2) - " << ScrAT::s_modeDescriptions[1] << std::endl
         << "  [3]  ... draw mode (3) - " << ScrAT::s_modeDescriptions[2] << std::endl
