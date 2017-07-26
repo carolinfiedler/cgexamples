@@ -4,9 +4,11 @@
 #include <cmath>
 #include <iostream>
 #include <string>
+#include <set>
 
 #include <glbinding/gl32ext/gl.h>
 #include <glbinding/Meta.h>
+#include <glbinding/ContextInfo.h>
 
 #include <cgutils/common.h>
 
@@ -188,8 +190,18 @@ void ScrAT::initialize()
 
     glGenQueries(1, &m_query);
 
-    // test whether the NV_fill_rectangle extension is supported. If not, warn user
-    if (glbinding::Meta::getExtension("GL_NV_fill_rectangle") == gl::GLextension::UNKNOWN)
+    // test whether the NV_fill_rectangle extension is known and supported. If not, warn user
+    const auto extension = glbinding::Meta::getExtension("GL_NV_fill_rectangle");
+
+    if (extension == gl::GLextension::UNKNOWN) 
+    {
+        std::cout << "The NV_fill_rectangle extension is unknown on your system." << std::endl << "Draw mode 3 will not work properly." << std::endl << std::endl;
+        m_NV_extension_supported = false;
+        return;
+    }
+
+    const std::set<gl::GLextension> requiredExtensions = {extension};
+    if ( !glbinding::ContextInfo::supported(requiredExtensions) )
     {
         std::cout << "Your graphics card does not support the NV_fill_rectangle extension." << std::endl << "Draw mode 3 will not work properly." << std::endl << std::endl;
         m_NV_extension_supported = false;
