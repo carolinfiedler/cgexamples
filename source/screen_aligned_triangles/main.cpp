@@ -140,6 +140,7 @@ int main(int /*argc*/, char ** /*argv*/)
         << std::endl;
 
     glfwMakeContextCurrent(window);
+    glfwSwapInterval(1);
 
     glbinding::Binding::initialize(false);
 
