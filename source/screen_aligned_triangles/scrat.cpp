@@ -329,7 +329,12 @@ void ScrAT::render()
 {
     if (!m_recorded)
     {
-        std::cout << "  draw mode (" << static_cast<unsigned int>(m_vaoMode) + 1u << ") - " << s_modeDescriptions[static_cast<unsigned int>(m_vaoMode)] << std::endl;
+        std::cout << "  draw mode (" << static_cast<unsigned int>(m_vaoMode) + 1u << ") - " << s_modeDescriptions[static_cast<unsigned int>(m_vaoMode)];
+        
+        if (m_vaoMode == Mode::Quad_Fill_Rectangle_Extension && !m_NV_extension_supported)
+            std::cout << "   since NV_fill_rectangle extension is not supported this result may not be representative for draw mode 3";
+        std::cout << std::endl;
+
         record();
         m_recorded = true;
 
