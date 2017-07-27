@@ -27,7 +27,7 @@ const std::array<std::string, 5> ScrAT::s_modeDescriptions = std::array<std::str
 ScrAT::ScrAT()
 : m_recorded(false)
 , m_vaoMode(Mode::Quad)
-, m_timeDurationMagnitude(3u)
+, m_timeDurationMagnitude(2u)
 , m_NV_extension_supported(true)
 {
 }
@@ -511,7 +511,7 @@ void ScrAT::updateThreshold()
 {
 	const auto msecsSinceStart = msecs(std::chrono::high_resolution_clock::now() - m_startTime).count();
     m_thresholdIndex = m_startIndex  
-		+ 0.1f * powf(10.f, static_cast<float>(m_timeDurationMagnitude)) * msecsSinceStart;
+		+ powf(10.f, static_cast<float>(m_timeDurationMagnitude)) * msecsSinceStart;
 }
 
 void ScrAT::switchDrawMode()
